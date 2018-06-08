@@ -12,8 +12,8 @@ import java.util.List;
  */
 public interface ResourceRepository extends JpaRepository<Resource, Integer> {
 
-    @Query(value = "select id,data_type from sync_data where data_type=?1 limit ?2,?3",nativeQuery=true)
-    List<Resource> findAllByType(String type,
+    @Query(value = "select id,data_type from sync_data where data_type=?1 and source=?2 limit ?3,?4",nativeQuery=true)
+    List<Resource> findAllByType(String type,String sourceType,
                                  Integer start,
                                  Integer count);
 }

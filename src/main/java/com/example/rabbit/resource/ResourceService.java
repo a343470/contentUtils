@@ -2,19 +2,24 @@ package com.example.rabbit.resource;
 
 
 import com.alibaba.fastjson.JSONObject;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessagePostProcessor;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Author: huyang
@@ -37,17 +42,18 @@ public class ResourceService {
         }
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
         connectionFactory.setAddresses("10.25.245.121:8088");
-        connectionFactory.setUsername("guest");
-        connectionFactory.setPassword("guest");
+        connectionFactory.setUsername("cp");
+        connectionFactory.setPassword("cp");
         connectionFactory.setPublisherConfirms(true);
         connectionFactory.setVirtualHost("" + pool.get());
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
         map.put(pool.get(), rabbitTemplate);
         return rabbitTemplate;
     }
 
     @RequestMapping("/resource/sendByType")
-    public String sendByType(int start, int count, String type, String host) {
+    public String sendByType(int start, int count, String type, String host,String sourceTpye) {
         pool.set(host);
         int countInteger = 1000;
         int i = (count - start - 1) / countInteger + 1;
@@ -60,14 +66,10 @@ public class ResourceService {
             } else {
                  count1 =countInteger;
             }
-            List<Resource> list = resourceDORepository.findAllByType(type,start1,count1);
+            List<Resource> list = resourceDORepository.findAllByType(type,sourceTpye,start1,count1);
             int sendNum = 10;
             int c = (list.size() - 1) / sendNum + 1;
 
-
-            for (int k = 0; k < 100; k++) {
-                matching(type, k+"");
-            }
             for (int d = 0; d < c; d++) {
                 List<Resource> list1;
                 if (d == c - 1) {
@@ -80,7 +82,7 @@ public class ResourceService {
                     sub += resourceDataDo.getId() + "_";
                 }
                 String substring = sub.substring(0, sub.length() - 1);
-                matching(type, substring);
+                matching(type, substring,sourceTpye);
             }
         }
         return "{\"result\":\"老铁没毛病\"}";
@@ -91,8 +93,20 @@ public class ResourceService {
         String aaa = "{\"name\":\"1dsadasda   \\\"dsadsa\\\"     \",\"age\":\"11\"}";
         System.out.println(JSONObject.toJSONString(JSONObject.parseObject(aaa,User.class)).replace("\\\"","\""));
 
+        User user = new User();
+        user.setAge("11");
+        user.setMm(11);
+        User user1 = new User();
+        user1.setAge("12");
+        user1.setMm(12);
 
-
+        List<User> users = new ArrayList<>();
+        users.add(user);
+        users.add(user1);
+        users.sort((o1,o2) ->{
+            return o2.getAge().compareTo(o1.getAge());
+        });
+        users.stream().forEach(System.out::println);
       /*  try {
             String s = "1[1{\"name\":\"1\",\"age\":\"11\"},{\"name\":\"1\",\"age\":\"11\"}]";
             List<String> users = JSONObject.parseArray(s, String.class);
@@ -112,12 +126,17 @@ public class ResourceService {
 */
     }
     @Data
+    @ToString
     public static class User{
         String name;
         String age;
+        Integer mm;
     }
 
-    private String matching(String type, String id) {
+    private String matching(String type, String id,String resourceType) {
+        if("cms".equals(resourceType)&& "dalbum".equals(type)){
+            type = "dalbum1";
+        }
         switch (type) {
             case "common-material":
                 send(TopicRabbitConfig.M_TP_SONGLIBRARY_DATA_CHANGED_RESOURCE_COMMON_MATERIAL, id);

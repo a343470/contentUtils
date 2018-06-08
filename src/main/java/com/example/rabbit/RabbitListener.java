@@ -18,7 +18,7 @@ import java.io.IOException;
 //@org.springframework.amqp.rabbit.annotation.RabbitListener(bindings = {@QueueBinding(value = @Queue(value = "q.resource.share.aync_resource",
 //        arguments = {@Argument(name = "x-dead-letter-exchange", value = "amq.topic"),@Argument(name = "x-dead-letter-routing-key", value = "m.tp.ml-data-convert-changed.3")}), exchange = @Exchange(value = "amq.topic",type = ExchangeTypes.TOPIC, durable = "false")
 //)})
-@org.springframework.amqp.rabbit.annotation.RabbitListener(queues = "q.resource.share.aync_resource")
+
 public class RabbitListener {
     @RabbitHandler
     public void receiveMessage(String id
@@ -39,5 +39,11 @@ public class RabbitListener {
         rabbitTemplateHy.convertAndSend("amq.topic",routingKey,id,messagePostProcessor);
         rabbitTemplateWq.convertAndSend("amq.topic",routingKey,id,messagePostProcessor);
         rabbitTemplateDsy.convertAndSend("amq.topic",routingKey,id,messagePostProcessor);*/
+    }
+
+    public static void main(String[] args) {
+        String re = "([0-9])\\1+";
+        String jj = "112244521";
+        System.out.println(jj.replaceAll(re,"1"));
     }
 }
